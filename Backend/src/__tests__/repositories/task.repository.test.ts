@@ -107,27 +107,48 @@ describe("TaskRepository", () => {
   });
 
   describe("update", () => {
-    it("should save and return the updated task", async () => {
+    it("should call Task.update and return the updated task", async () => {
       const taskInstance = mockTask as Task;
+      const updateSpy = jest
+        .spyOn(Task, "update")
+        // Sequelize returns [affectedCount, affectedRows?] in some dialects
+        .mockResolvedValue([1] as any);
 
-      const result = await repository.update(taskInstance);
+      const result = await repository.update(taskInstance as any);
 
-      expect(taskInstance.save).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalledWith(taskInstance, {
+        where: { id: taskInstance.id },
+      });
       expect(result).toEqual(taskInstance);
     });
   });
 
   describe("markAsCompleted", () => {
-    it("should mark task as completed and return it", async () => {
-      const taskInstance = { ...mockTask, completed: false } as Task;
-      jest.spyOn(Task, "findByPk").mockResolvedValue(taskInstance as any);
+    it("should mark task as completed and persist via Task.update", async () => {
+      // Simulate a Sequelize instance with get()
+      const plain = { ...(mockTask as any), completed: false };
+      const instance = {
+        get: jest.fn().mockReturnValue({ ...plain }),
+      } as unknown as Task;
+
+      const findSpy = jest
+        .spyOn(Task, "findByPk")
+        .mockResolvedValue(instance as any);
+      const updateSpy = jest
+        .spyOn(Task, "update")
+        .mockResolvedValue([1] as any);
 
       const result = await repository.markAsCompleted(1);
 
-      expect(Task.findByPk).toHaveBeenCalledWith(1);
-      expect(taskInstance.completed).toBe(true);
-      expect(taskInstance.save).toHaveBeenCalled();
-      expect(result).toEqual(taskInstance);
+      expect(findSpy).toHaveBeenCalledWith(1);
+      expect(instance.get).toHaveBeenCalled();
+      expect(updateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, completed: true }),
+        { where: { id: 1 } }
+      );
+      expect(result).toEqual(
+        expect.objectContaining({ id: 1, completed: true })
+      );
     });
 
     it("should return null when task not found", async () => {
