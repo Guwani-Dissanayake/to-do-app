@@ -3,13 +3,13 @@ import { createTodo, getTodos, markTodoAsDone } from '../controllers/todo.contro
 
 const router = Router();
 
-// Get recent 5 todos
+// Get 
 router.get('/', getTodos);
 
-// Create a new todo
-router.post('/', createTodo);
+// Create 
+router.post('/create', createTodo);
 
-// Mark todo as done
-router.put('/:id/done', markTodoAsDone);
+// update
+router.put('/:id', markTodoAsDone);
 
 export const todoRoutes = router;
